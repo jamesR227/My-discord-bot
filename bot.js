@@ -1,3 +1,4 @@
+equire('dotenv').config(); // Ensure you have dotenv configured for environment variables
 const { Client, GatewayIntentBits, REST, Routes, ChannelType } = require('discord.js');
 const fs = require('fs');
 const { exec } = require('child_process'); // Import exec to run shell commands
