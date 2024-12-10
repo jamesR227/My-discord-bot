@@ -1,81 +1,148 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, PermissionsBitField, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, ChannelType } = require('discord.js');
+const fs = require('fs');
+const { exec } = require('child_process'); // Import exec to run shell commands
+const path = require('path');
 
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages],
+const TOKEN = 'MTMxNTQ5NjQ1MzE0NTEwMDMyOQ.G-o5up.8y0bM5kCvPrkFeNlWWs8WqV9_XmjUi0Hy_8qd8'; // Replace with your bot's token
+const CLIENT_ID = '1315496453145100329'; // Replace with your bot's client ID
+const GUILD_ID = '1182218481802948708'; // Replace with your guild ID
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
+
+// Add an interval to check for file updates
+const watchFilePath = path.resolve(__dirname, 'bot.js'); // Absolute path to the bot file
+fs.watchFile(watchFilePath, () => {
+    console.log('File change detected! Restarting bot...');
+    exec('node bot.js', (err, stdout, stderr) => {
+        if (err) {
+            console.error(`Error restarting bot: ${err}`);
+            return;
+        }
+        console.log(stdout);
+        console.error(stderr);
+    });
 });
 
+// Register slash commands
 const commands = [
-    { name: 'ping', description: 'Replies with Pong!' },
-    { name: 'kick', description: 'Kick a member', options: [
-        { type: 6, name: 'user', description: 'The user to kick', required: true },
+    { name: 'ping', description: 'Replies with Pong! and latency.' },
+    { name: 'createticket', description: 'Creates a ticket channel.', options: [
+        { type: 3, name: 'name', description: 'Name of the ticket channel', required: true },
+        { type: 3, name: 'reason', description: 'Reason for the ticket', required: false }
     ]},
-    { name: 'ban', description: 'Ban a member', options: [
-        { type: 6, name: 'user', description: 'The user to ban', required: true },
-    ]},
-    { name: 'createticket', description: 'Create a ticket channel' },
-    { name: 'deleteticket', description: 'Delete the current ticket channel' },
-    { name: 'transcript', description: 'Save a transcript of the ticket channel' },
+    { name: 'deleteticket', description: 'Deletes the ticket channel.' },
+    { name: 'transcript', description: 'Saves a transcript of the ticket channel.' },
+    { name: 'kick', description: 'Kicks a member from the server.', options: [{ type: 6, name: 'user', description: 'User to kick', required: true }] },
+    { name: 'ban', description: 'Bans a member from the server.', options: [{ type: 6, name: 'user', description: 'User to ban', required: true }] },
 ];
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+// Initialize REST API for command registration
+const rest = new REST({ version: '9' }).setToken(TOKEN);
 
 (async () => {
     try {
-        console.log('Refreshing application (/) commands.');
-        await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID), { body: commands });
+        console.log('Started refreshing application (/) commands.');
+        await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
         console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
-        console.error(error);
+        console.error('Error registering commands:', error);
     }
 })();
 
+// Get customizable status from environment variables or a default value
+const customStatus = process.env.CUSTOM_STATUS || "Ping VampMommy if not working"; // Default status if not defined
+
 client.once('ready', () => {
-    console.log(`${client.user.tag} is online!`);
+    console.log(`Logged in as ${client.user.tag}!`);
+    client.user.setPresence({
+        activities: [{ name: customStatus, type: "PLAYING" }], // Dynamic status message
+        status: "online",
+    });
+    console.log(`Bot status set to: "${customStatus}"`);
 });
 
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
 
-    const { commandName, options } = interaction;
+    const { commandName } = interaction;
 
+    // Ping command with latency
     if (commandName === 'ping') {
-        await interaction.reply('Pong!');
-    } else if (commandName === 'kick') {
-        const user = options.getUser('user');
-        const member = interaction.guild.members.cache.get(user.id);
-        if (!member) return interaction.reply('User not found.');
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.KickMembers)) {
-            return interaction.reply("You don't have permission to kick members.");
-        }
-        await member.kick();
-        await interaction.reply(`${user.tag} has been kicked.`);
-    } else if (commandName === 'ban') {
-        const user = options.getUser('user');
-        const member = interaction.guild.members.cache.get(user.id);
-        if (!member) return interaction.reply('User not found.');
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-            return interaction.reply("You don't have permission to ban members.");
-        }
-        await member.ban();
-        await interaction.reply(`${user.tag} has been banned.`);
-    } else if (commandName === 'createticket') {
+        const start = Date.now();
+        const msg = await interaction.reply({ content: 'Pinging...', fetchReply: true });
+        const latency = Date.now() - start;
+        await interaction.editReply(`Pong! Latency: ${latency}ms | API Latency: ${Math.round(client.ws.ping)}ms`);
+    }
+
+    // Create Ticket command
+    if (commandName === 'createticket') {
+        const ticketName = interaction.options.getString('name');
+        const reason = interaction.options.getString('reason') || 'No reason provided';
+        
+        const channelName = `ticket-${ticketName.replace(/\s+/g, '-').toLowerCase()}`; // Use provided channel name
+
         const channel = await interaction.guild.channels.create({
-            name: `ticket-${interaction.user.username}`,
+            name: channelName,
             type: ChannelType.GuildText,
             permissionOverwrites: [
                 {
-                    id: interaction.guild.id,
-                    deny: [PermissionsBitField.Flags.ViewChannel],
+                    id: interaction.guild.id, // @everyone
+                    deny: ['VIEW_CHANNEL'],
                 },
                 {
                     id: interaction.user.id,
-                    allow: [PermissionsBitField.Flags.ViewChannel],
+                    allow: ['VIEW_CHANNEL'],
                 },
             ],
         });
-        await interaction.reply(`Ticket created: ${channel}`);
+        
+        // Notify user and open the channel
+        await interaction.reply(`Ticket created: ${channel} \nReason: ${reason}`);
+        await channel.send(`Hello ${interaction.user}, your ticket has been created.\nReason: ${reason}`);
+    }
+
+    // Delete Ticket command
+    if (commandName === 'deleteticket') {
+        if (!interaction.channel.name.startsWith('ticket-')) return await interaction.reply("This command can only be used in a ticket channel.");
+        
+        await interaction.channel.delete();
+        await interaction.reply('Ticket channel deleted.');
+    }
+
+    // Transcript command
+    if (commandName === 'transcript') {
+        if (!interaction.channel.name.startsWith('ticket-')) return await interaction.reply("This command can only be used in a ticket channel.");
+
+        const messages = await interaction.channel.messages.fetch({ limit: 100 });
+        const transcript = messages.map(msg => `${msg.author.tag}: ${msg.content}`).reverse().join('\n');
+
+        fs.writeFileSync(`transcript-${interaction.channel.name}.txt`, transcript);
+        await interaction.reply(`Transcript saved as transcript-${interaction.channel.name}.txt`);
+    }
+
+    // Kick command
+    if (commandName === 'kick') {
+        if (!interaction.member.permissions.has('KICK_MEMBERS')) return await interaction.reply("You don't have permission to kick members.");
+
+        const user = interaction.options.getUser('user');
+        const member = interaction.guild.members.cache.get(user.id);
+        if (!member) return await interaction.reply("User not found in this server.");
+
+        await member.kick();
+        await interaction.reply(`${user.tag} has been kicked from the server.`);
+    }
+
+    // Ban command
+    if (commandName === 'ban') {
+        if (!interaction.member.permissions.has('BAN_MEMBERS')) return await interaction.reply("You don't have permission to ban members.");
+
+        const user = interaction.options.getUser('user');
+        const member = interaction.guild.members.cache.get(user.id);
+        if (!member) return await interaction.reply("User not found in this server.");
+
+        await member.ban();
+        await interaction.reply(`${user.tag} has been banned from the server.`);
     }
 });
 
-client.login(process.env.TOKEN);
+// Log in to Discord
+client.login(TOKEN);
