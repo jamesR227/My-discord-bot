@@ -60,6 +60,12 @@ client.once('ready', () => {
     console.log(`Bot status set to: "${customStatus}"`);
 });
 
+// Set customizable activity
+client.user.setPresence({
+    activities: [{ name: CUSTOM_ACTIVITY, type: "PLAYING" }], // Example type: "PLAYING"
+    status: "online",
+});
+
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
 
