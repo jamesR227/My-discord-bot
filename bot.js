@@ -1,10 +1,9 @@
-equire('dotenv').config(); // Ensure you have dotenv configured for environment variables
 const { Client, GatewayIntentBits, REST, Routes, ChannelType } = require('discord.js');
 const fs = require('fs');
 const { exec } = require('child_process'); // Import exec to run shell commands
 const path = require('path');
 
-const TOKEN = 'MTMxNTQ5NjQ1MzE0NTEwMDMyOQ.G-o5up.8y0bM5kCvPrkFeNlWWs8WqV9_XmjUi0Hy_8qd8'; // Replace with your bot's token
+const TOKEN = 'MTMxNTQ5NjQ1MzE0NTEwMDMyOQ.GHty6X.ev3hWXTRXy8o55r5hUpLxTqqmxCP16PAQ3T184'; // Replace with your bot's token
 const CLIENT_ID = '1315496453145100329'; // Replace with your bot's client ID
 const GUILD_ID = '1182218481802948708'; // Replace with your guild ID
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
@@ -49,22 +48,12 @@ const rest = new REST({ version: '9' }).setToken(TOKEN);
     }
 })();
 
-// Get customizable status from environment variables or a default value
-const customStatus = process.env.CUSTOM_STATUS || "Ping VampMommy if not working"; // Default status if not defined
+client.on('ready', () => {
 
-client.once('ready', () => {
-    console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setPresence({
-        activities: [{ name: customStatus, type: "PLAYING" }], // Dynamic status message
-        status: "online",
-    });
-    console.log(`Bot status set to: "${customStatus}"`);
-});
+    console.log(`${client.user.tag} is online!`);
 
-// Set customizable activity
-client.user.setPresence({
-    activities: [{ name: CUSTOM_ACTIVITY, type: "PLAYING" }], // Example type: "PLAYING"
-    status: "online",
+    client.user.setActivity('with users', { type: 'PLAYING' }); // Sets status as "Playing with users"
+
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -151,5 +140,5 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-// Log in to Discord
+// Log in to Discord 
 client.login(TOKEN);
