@@ -3,7 +3,7 @@ const fs = require('fs');
 const { exec } = require('child_process'); // Import exec to run shell commands
 const path = require('path');
 
-const TOKEN = 'MTMxNTQ5NjQ1MzE0NTEwMDMyOQ.GBvVVa.wSbMGIKdpK3DpMNzvg-oI7xuuRUXBG5xmV0pvQ'; // Replace with your bot's token
+const TOKEN = 'MTMxNTQ5NjQ1MzE0NTEwMDMyOQ.GFSLg8.CPTbsTJWNtLZ5QCi3pJnki0buuW8xZmVr4urs0'; // Replace with your bot's token
 const CLIENT_ID = '1315496453145100329'; // Replace with your bot's client ID
 const GUILD_ID = '1182218481802948708'; // Replace with your guild ID
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
